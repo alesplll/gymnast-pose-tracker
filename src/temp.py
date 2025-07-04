@@ -1,3 +1,0 @@
-from mmpose.apis import init_pose_model, inference_top_down_pose_model
-print(init_pose_model)
-print(inference_top_down_pose_model)
