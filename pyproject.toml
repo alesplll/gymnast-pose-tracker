@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "gymnast-pose-tracker"
+version = "0.1.0"
+description = ""
+authors = ["Alesplll <gloxena.w@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+torch = "2.1.2"
+torchvision = "0.16.2"
+mmcv = "2.1.0"
+mmdet = "3.2.0"
+mmpose = "1.3.0"
+opencv-python = "*"
+motmetrics = "*"
+pycocotools = "*"
+xtcocotools = "*"
+matplotlib = "*"
+scikit-learn = "*"
+tqdm = "*"
+numpy = "1.26.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
