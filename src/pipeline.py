@@ -8,15 +8,15 @@ from src.visualization import draw_bboxes, draw_skeletons
 
 
 class Pipeline:
-    def __init__(self, det_config, det_ckpt, pose_config, pose_ckpt, device=None):
-        self.detector = Detector(det_config, det_ckpt, device=device)
+    def __init__(self, pose_config, pose_ckpt, device=None):
+        self.detector = Detector(device=device)
         self.tracker = Tracker()
         self.pose_estimator = PoseEstimator(
             pose_config, pose_ckpt, device=device)
 
     def run(self, video_path, output_path):
         cap = cv2.VideoCapture(video_path)
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # type: ignore
         fps = cap.get(cv2.CAP_PROP_FPS)
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))

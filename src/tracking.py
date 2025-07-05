@@ -1,10 +1,11 @@
 import numpy as np
 from typing import List, Dict
+from argparse import Namespace
 
 try:
     from yolox.tracker.byte_tracker import BYTETracker
 except ImportError:
-    BYTETracker = None  # Требуется установка yolox[tracker] или bytetrack
+    BYTETracker = None
 
 
 class Tracker:
@@ -12,10 +13,15 @@ class Tracker:
         if BYTETracker is None:
             raise ImportError(
                 "BYTETracker не установлен. Установите yolox[tracker] или bytetrack.")
-        self.tracker = BYTETracker(
+        args = Namespace(
             track_thresh=track_thresh,
-            match_thresh=match_thresh,
             track_buffer=track_buffer,
+            match_thresh=match_thresh,
+            min_box_area=10,
+            mot20=False
+        )
+        self.tracker = BYTETracker(
+            args=args,
             frame_rate=frame_rate
         )
 
@@ -31,7 +37,8 @@ class Tracker:
                 det['bbox'] + [det['score']] for det in detections
             ], dtype=np.float32)
         # ByteTrack ожидает dets: (N, 5) — [x1, y1, x2, y2, score]
-        online_targets = self.tracker.update(dets, frame)
+        img_size = (frame.shape[1], frame.shape[0])  # (width, height)
+        online_targets = self.tracker.update(dets, img_size, img_size)
         results = []
         for t in online_targets:
             tlwh = t.tlwh
