@@ -23,7 +23,10 @@ def draw_bboxes(frame, bboxes, color=(0, 255, 0), thickness=2):
 
 def draw_skeletons(frame, poses, kpt_thr=0.2):
     for pose in poses:
-        keypoints = pose['keypoints']  # (17, 3)
+        keypoints = pose['keypoints']  # (17, 3) или None
+        if keypoints is None:
+            continue  # Пропускаем poses без keypoints
+
         for idx, (i, j) in enumerate(COCO_PAIRS):
             if keypoints[i, 2] > kpt_thr and keypoints[j, 2] > kpt_thr:
                 pt1 = tuple(map(int, keypoints[i, :2]))

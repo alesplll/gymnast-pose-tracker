@@ -12,10 +12,11 @@ class Pipeline:
         self.detector = Detector(device=device)
         self.tracker = Tracker()
         self.pose_estimator = PoseEstimator()
+        self.last_good_poses = []
 
     def run(self, video_path, output_path):
         cap = cv2.VideoCapture(video_path)
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # type: ignore
         fps = cap.get(cv2.CAP_PROP_FPS)
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -28,14 +29,15 @@ class Pipeline:
                 break
             # Детекция + keypoints
             dets = self.detector.detect(frame)
-            bboxes = [d['bbox'] for d in dets]
             # Трекинг
-            tracked = self.tracker.update(frame, [{'bbox': d['bbox'], 'score': d['score']} for d in dets])
-            tracked_bboxes = [t['bbox'] for t in tracked]
+            tracked = self.tracker.update(
+                frame, [{'bbox': d['bbox'], 'score': d['score']} for d in dets])
+            # Если треков нет, используем последний удачный трек и keypoints
+            if not tracked and self.tracker.last_tracks:
+                tracked = self.tracker.last_tracks
             # Сопоставление keypoints с треками (по IoU)
             poses = []
             for t in tracked:
-                # ищем ближайший bbox из детекции
                 best_det = None
                 best_iou = 0
                 for d in dets:
@@ -43,14 +45,27 @@ class Pipeline:
                     if iou > best_iou:
                         best_iou = iou
                         best_det = d
-                if best_det and best_iou > 0.5:
-                    poses.append({'keypoints': best_det['keypoints'], 'bbox': t['bbox']})
+                if best_det and best_iou > 0.3:
+                    keypoints = best_det['keypoints']
+                    visible_points = np.sum(keypoints[:, 2] > 0.3)
+                    if visible_points >= 3:
+                        poses.append(
+                            {'keypoints': keypoints, 'bbox': t['bbox']})
+                    else:
+                        poses.append({'keypoints': None, 'bbox': t['bbox']})
                 else:
-                    poses.append({'keypoints': np.zeros((17,3)), 'bbox': t['bbox']})
+                    poses.append({'keypoints': None, 'bbox': t['bbox']})
+            # Если нет ни одного хорошего скелета, используем последний удачный
+            good_poses = [p for p in poses if p['keypoints'] is not None]
+            if good_poses:
+                self.last_good_poses = good_poses
+            else:
+                good_poses = self.last_good_poses
             # Визуализация
             vis_frame = frame.copy()
-            vis_frame = draw_bboxes(vis_frame, tracked_bboxes)
-            vis_frame = draw_skeletons(vis_frame, poses)
+            good_bboxes = [p['bbox'] for p in good_poses]
+            vis_frame = draw_bboxes(vis_frame, good_bboxes)
+            vis_frame = draw_skeletons(vis_frame, good_poses)
             out.write(vis_frame)
             frame_idx += 1
             if frame_idx % 10 == 0:
